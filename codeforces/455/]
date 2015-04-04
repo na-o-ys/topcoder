@@ -1,0 +1,47 @@
+#include <iostream>
+#include <vector>
+#include <algorithm>
+ 
+#define loop(n, i) for(int i=0;i<n;i++)
+#define loop_from_to(from, to, i) for(int i=from;i<=to;i++)
+
+using namespace std;
+using ll = long long;
+
+vector<string> S;
+
+bool dfs(string s) {
+    int l = s.length();
+
+    auto p = lower_bound(S.begin(), S.end(), s);
+    if (p != S.end()) cout << s << ": " << *p << endl;
+    if (p == S.end() || (*p).length() < l || (*p).substr(0, l) != s) {
+        return (l%2 == 0);
+    }
+
+    if (l % 2 == 0) {
+        loop (26, i) {
+            if (dfs(s + (char)('a' + i))) return true;
+        }
+        return false;
+    }
+
+    loop (26, i) {
+        if (!dfs(s + (char)('a' + i))) return false;
+    }
+    return true;
+}
+
+int main(int argc, char const* argv[])
+{
+    int n, k; cin >> n >> k;
+    S = vector<string>(n);
+    loop (n, i) cin >> S[i];
+    sort(S.begin(), S.end());
+
+    bool first = dfs("") && (k%2);
+    string ans = first ? "First" : "Second";
+    cout << ans << endl;
+    return 0;
+}
+

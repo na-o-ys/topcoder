@@ -1,0 +1,4 @@
+*.swp
+*.class
+*.out
+.DS_Store

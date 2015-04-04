@@ -1,0 +1,11 @@
+決定表面 / decision surface
+  入力空間D次元に対して、(D-1)次元の超平面で表される
+
+ターゲットベクトルt
+  0,1 or 01ベクトル 式(4.1)
+
+chap1. classification問題の3つのアプローチ
+1. 識別関数
+inference stage p(C|x) + decision
+2. ダイレクトp(C|x)
+3. ( p(x|C) and p(C) )
