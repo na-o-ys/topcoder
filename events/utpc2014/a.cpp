@@ -4,39 +4,37 @@
 #define all(v) v.begin(),v.end()
 
 using namespace std;
-using ll = long long;
-
-vector<string> rec(vector<string> S)
-{
-    int seq = 0, i;
-    for (i = 0; i < S.size(); i++) {
-        if (S[i] == "not") seq++;
-        else {
-            if (seq >= 2) {
-                S.erase(S.begin() + (i - 2), S.begin() + i);
-                return rec(S);
-            }
-            seq = 0;
-        }
-    }
-    return S;
-}
+typedef long long ll;
 
 int main()
 {
     vector<string> S;
     {
-        string s;
-        getline(cin, s);
-        {
-            string f;
-            istringstream ss(s);
-            while(getline(ss, f, ' ')) {
-                S.push_back(f);
+        string s; getline(cin, s);
+        istringstream ss(s);
+        string word;
+        while (getline(ss, word, ' ')) S.push_back(word);
+    }
+
+    while (1) {
+        int i = 0, count = 0, ck = 0;
+        for (; i < S.size(); i++) {
+            if (S[i] == "not") count++;
+            else {
+                if (count >= 2) {
+                    S.erase(S.begin()+(i-2), S.begin()+i);
+                    ck = 1;
+                }
+                count = 0;
             }
         }
+        if (!ck) break;
     }
-    for (auto s : rec(S)) cout << s << " ";
+
+    for (int i = 0; i < S.size(); i++) {
+        cout << S[i];
+        if (i != S.size() - 1) cout << " ";
+    }
     cout << endl;
     return 0;
 }
