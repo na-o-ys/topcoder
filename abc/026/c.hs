@@ -1,13 +1,11 @@
 import Control.Applicative
-import Debug.Trace
 import Data.List
 
-val [] = 1
-val bs = maximum bs + minimum bs + 1
-
-solve bs n = val $ map (solve bs) $ map succ $ elemIndices n bs
+solve bs n = val $ map (solve bs) $ elemIndices n bs where
+    val [] = 1
+    val bs = maximum bs + minimum bs + 1
 
 main = do
-    _ <- getLine
+    _  <- getLine
     bs <- map (pred . read) . lines <$> getContents
-    putStrLn $ show $ solve bs 0
+    print $ solve (-1:bs) 0
