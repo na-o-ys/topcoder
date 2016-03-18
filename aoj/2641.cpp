@@ -1,0 +1,56 @@
+#include <bits/stdc++.h>
+ 
+#define loop(n, i) for(int i=0;i<n;i++)
+#define all(v) v.begin(),v.end()
+#define HERE cout << "HERE: " << __LINE__ << endl;
+#define INSP(v) cout << v << " at " << __LINE__ << endl;
+
+using namespace std;
+typedef long long ll;
+typedef struct {
+    double x, y, z;
+} P;
+
+double dot(P a, P b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+P diff(P f, P t)
+{
+    return P{ t.x - f.x, t.y - f.y, t.z - f.z };
+}
+
+P mul(P a, double s)
+{
+    return P{ a.x*s, a.y*s, a.z*s };
+}
+
+const double EPS = 1e-8;
+
+int main()
+{
+    int n, q; cin >> n >> q;
+    vector<P> p(n);
+    vector<double> r(n);
+    vector<ll> l(n);
+    loop (n, i) cin >> p[i].x >> p[i].y >> p[i].z >> r[i] >> l[i];
+
+    loop (q, i) {
+        P s, t;
+        cin >> s.x >> s.y >> s.z >> t.x >> t.y >> t.z;
+
+        P v = diff(s, t);
+        double d = pow(dot(v, v), 0.5);
+        ll ans = 0;
+        loop (n, j) {
+            P w = diff(s, p[j]);
+            P nv = mul(v, dot(w, v) / d / d);
+            P nw = diff(nv, w);
+            double R = pow(dot(nw, nw), 0.5);
+            if (R < r[j] + EPS) ans += l[j];
+        }
+        cout << ans << endl;
+    }
+    return 0;
+}
