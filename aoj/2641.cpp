@@ -26,6 +26,11 @@ P mul(P a, double s)
     return P{ a.x*s, a.y*s, a.z*s };
 }
 
+double dist(P a)
+{
+    return pow(dot(a, a), 0.5);
+}
+
 const double EPS = 1e-8;
 
 int main()
@@ -40,14 +45,14 @@ int main()
         P s, t;
         cin >> s.x >> s.y >> s.z >> t.x >> t.y >> t.z;
 
-        P v = diff(s, t);
-        double d = pow(dot(v, v), 0.5);
+        P st = diff(s, t), ts = diff(t, s);
+        P n_st = mul(st, 1.0/dist(st));
         ll ans = 0;
         loop (n, j) {
-            P w = diff(s, p[j]);
-            P nv = mul(v, dot(w, v) / d / d);
-            P nw = diff(nv, w);
-            double R = pow(dot(nw, nw), 0.5);
+            P sp = diff(s, p[j]), tp = diff(t, p[j]);
+            if (dot(sp, st) < 0 || dot(tp, ts) < 0) continue;
+            P n_sp = mul(n_st, dot(sp, n_st));
+            double R = dist(diff(sp, n_sp));
             if (R < r[j] + EPS) ans += l[j];
         }
         cout << ans << endl;
