@@ -39,6 +39,34 @@ impl Table {
     fn set(&mut self, r: usize, c: usize, v: char) {
         self.rows[r][c] = v;
     }
+
+    fn vanish(&mut self) {
+        for r in 0..N {
+            vanish_row(&mut self.rows[r])
+        }
+    }
+}
+
+fn vanish_row(row: &mut [char; N]) {
+    let mut geta: usize = 0;
+    for c in 0..N {
+        let v = if c + geta < N { row[c + geta] } else { 'D' };
+        if row[c] == '-' { continue; }
+        row[c] = match v {
+            'o' | 'x' | '+' => v,
+            '.'             => {
+                while c + geta < N && row[c + geta] == '.' {
+                    geta += 1;
+                }
+                if c + geta < N {
+                    row[c + geta]
+                } else {
+                    'D'
+                }
+            },
+            _         => 'D'
+        }
+    }
 }
 
 impl fmt::Display for Table {
@@ -54,7 +82,8 @@ impl fmt::Display for Table {
 }
 
 fn main() {
-    let table = Table::read();
+    let mut table = Table::read();
+    table.vanish();
     p(table);
     // table.show();
 }
