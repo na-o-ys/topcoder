@@ -15,7 +15,9 @@ fn main() {
     let mut sa = Anealing::new(SystemTime::now(), 9500);
 
     let mut current_score: u32 = 0;
+    let mut count = 0;
     while sa.remainig() > 0.0 {
+        count += 1;
         let r = rng.next_idx(N);
 
         let mut row = *table.get_row(r);
@@ -27,6 +29,9 @@ fn main() {
         vanished_table.set_row(r, v_row_nxt);
         let next_score = vanished_table.score();
 
+        // if current_score < next_score && sa.remainig() < 0.3 {
+        //     row.update_prob();
+        // }
         // p(current_score);
         if sa.transition(current_score as i32, next_score as i32) {
             table.set_row(r, row);
@@ -35,6 +40,8 @@ fn main() {
             vanished_table.set_row(r, v_row_crr);
         }
     }
+    p(count);
+    // vanished_table.show();
     // table.show();
     p(vanished_table.score());
  
@@ -44,8 +51,12 @@ fn main() {
 fn randomize(row: &mut Row, rng: &mut Rng) {
     for c in 1..N {
         if row[c] == 'o' || row[c] == 'x' { continue; }
-        let sym = ['.', '.', '.', '.', '.', '.', '.', '.', '.', '+'];
-        row[c] = sym[rng.next_idx(10)];
+        const SYM: [char; 3] = ['.', '+', '-'];
+        row[c] = match rng.next_f() {
+            v if v < row.prob.0              => SYM[0],
+            v if v < row.prob.0 + row.prob.1 => SYM[1],
+            _                                => SYM[2]
+        };
     }
 }
 
@@ -86,12 +97,34 @@ impl Anealing {
 
 #[derive(Copy)]
 struct Row {
-    row: [char; N]
+    row: [char; N],
+    prob: (f32, f32, f32)
 }
 
 impl Row {
     fn new() -> Row {
-        Row { row: ['.'; N] }
+        Row { row: ['.'; N], prob: (45.0 / 50.0, 4.0 / 50.0, 1.0 / 50.0) }
+    }
+
+    fn update_prob(&mut self) {
+        let mut t = [0.0, 0.0, 0.0];
+        for c in 1..N {
+            match self.row[c] {
+                '.' => t[0] += 1.0,
+                '+' => t[1] += 1.0,
+                '-' => t[2] += 1.0,
+                _   => ()
+            }
+        }
+        let f = 1.5;
+        let sum = t[0] + t[1] + t[2];
+        self.prob.0 += t[0] / sum * f;
+        self.prob.1 += t[1] / sum * f;
+        self.prob.2 += t[2] / sum * f;
+        let psum = self.prob.0 + self.prob.1 + self.prob.2;
+        self.prob.0 /= psum;
+        self.prob.1 /= psum;
+        self.prob.2 /= psum;
     }
 }
 
@@ -101,7 +134,7 @@ impl Clone for Row {
         for c in 0..N {
             row[c] = self.row[c]
         }
-        Row { row: row }
+        Row { row: row, prob: self.prob }
     }
 }
 
