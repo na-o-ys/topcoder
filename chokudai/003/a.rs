@@ -1,32 +1,134 @@
 use std::io;
 use std::fmt;
 use std::cmp;
+use std::time::{SystemTime};
+use std::ops::{Index, IndexMut};
 
-const N: usize = 10;
+const N: usize = 50;
 
 fn main() {
+    let mut rng = Rng::from_seed(urand());
+    let mut sa = Anealing::new(SystemTime::now(), 9500);
     let mut table = Table::read();
-    p(&table);
-    let mut row = *table.get_row(0);
-    row[0] = 'I';
-    for i in 0..N {
-        print!("{}", row[i]);
+    let mut vanished_table = table.clone();
+    vanished_table.vanish();
+    let mut current_score: u32 = 0;
+    while sa.remainig() > 0.0 {
+        let r = rng.next_idx(N);
+        let mut row = *table.get_row(r);
+        for c in 1..N {
+            if row[c] == 'o' || row[c] == 'x' { continue; }
+            let sym = ['.', '.', '.', '.', '.', '.', '.', '.', '.', '+'];
+            row[c] = sym[rng.next_idx(10)];
+        }
+        let mut v_row = row.clone();
+        vanish_row(&mut v_row);
+        let v_row_org = *vanished_table.get_row(r);
+        vanished_table.set_row(r, v_row);
+        let next_score = vanished_table.score();
+        // p(current_score);
+        if sa.transition(current_score as i32, next_score as i32) {
+            table.set_row(r, row);
+            current_score = next_score;
+        } else {
+            vanished_table.set_row(r, v_row_org);
+        }
     }
-    println!("");
-    table.set_row(1, row);
-    p(&table);
-    // table.set(1, 1, '+');
-    table.vanish();
-    p(table.score());
+    // table.show();
+    p(vanished_table.score());
+ 
+    // p(Table::rand())
 }
 
+#[allow(dead_code)]
+struct Anealing {
+    start_time: SystemTime,
+    limit_ms:   f32,
+    p1:         f32,
+    p2:         f32,
+    rng:        Rng
+}
+
+impl Anealing {
+    fn new(start_time: SystemTime, limit_ms: u32) -> Anealing {
+        let mut rng = Rng::from_seed(urand());
+        const factor: f32 = 4.8;
+        let p1 = factor;
+        let p2 = N as f32 / 2.0;
+        Anealing { start_time: start_time, limit_ms: limit_ms as f32, p1: p1, p2: p2, rng: rng }
+    }
+
+    fn transition(&mut self, current_score: i32, next_score: i32) -> bool {
+        if current_score < next_score { return true; }
+        let probability = ((next_score - current_score) as f32 / self.temperture()).exp();
+        self.rng.next_f() < probability
+    }
+
+    fn temperture(&self) -> f32 {
+        self.p2 * (self.remainig() * self.p1).exp() / self.p1.exp()
+    }
+
+    fn remainig(&self) -> f32 {
+        let elapsed = self.start_time.elapsed().unwrap();
+        let elapsed_ms = (elapsed.as_secs() * 1000) as f32 + elapsed.subsec_nanos() as f32 / 1000000.0;
+        (self.limit_ms - elapsed_ms) / self.limit_ms
+    }
+}
+
+#[derive(Copy)]
+#[allow(dead_code)]
+struct Row {
+    row: [char; N]
+}
+
+impl Row {
+    fn new() -> Row {
+        Row { row: ['.'; N] }
+    }
+}
+
+impl Clone for Row {
+    fn clone(&self) -> Row {
+        let mut row = ['.'; N];
+        for c in 0..N {
+            row[c] = self.row[c]
+        }
+        Row { row: row }
+    }
+}
+
+impl Index<usize> for Row {
+    type Output = char;
+    fn index(&self, id: usize) -> &char {
+        &self.row[id]
+    }
+}
+
+impl IndexMut<usize> for Row {
+    fn index_mut<'a>(&'a mut self, id: usize) -> &mut char {
+        &mut self.row[id]
+    }
+}
+
+#[derive(Copy)]
+#[allow(dead_code)]
 struct Table {
-    rows: [[char; N]; N]
+    rows: [Row; N]
+}
+
+impl Clone for Table {
+    fn clone(&self) -> Table {
+        let mut rows = [Row::new(); N];
+        for r in 0..N {
+            rows[r] = self.rows[r].clone()
+        }
+        Table { rows: rows }
+    }
 }
 
 impl Table {
     fn new(rows: Vec<String>) -> Table {
-        let mut table_rows = [['.'; N]; N];
+        let mut table_rows = [Row::new(); N];
         for (i, row) in rows.iter().enumerate() {
             for (j, c) in row.as_bytes().iter().enumerate() {
                 table_rows[j][N - 1 - i] = *c as char;
@@ -44,7 +146,7 @@ impl Table {
     fn rand() -> Table {
         let val = ['.', '.', 'o', 'x'];
         let mut rng = Rng::from_seed(urand());
-        let mut table = Table { rows: [['.'; N]; N] };
+        let mut table = Table { rows: [Row::new(); N] };
         for r in 0..N {
             for c in 0..N {
                 table.set(r, c, val[(rng.next() % 4) as usize]);
@@ -56,7 +158,7 @@ impl Table {
     fn show(&self) {
         for r in 0..N {
             for c in 0..N {
-                print!("{}", self.rows[r][c]);
+                print!("{}", self.rows[c][N - 1 - r]);
             }
             println!("");
         }
@@ -66,7 +168,7 @@ impl Table {
         self.rows[r][c]
     }
 
-    fn get_row(&self, r: usize) -> &[char; N] {
+    fn get_row(&self, r: usize) -> &Row {
         &self.rows[r]
     }
 
@@ -74,7 +176,7 @@ impl Table {
         self.rows[r][c] = v;
     }
 
-    fn set_row(&mut self, r: usize, row: [char; N]) {
+    fn set_row(&mut self, r: usize, row: Row) {
         self.rows[r] = row
     }
 
@@ -110,7 +212,7 @@ impl Table {
     }
 }
 
-fn vanish_row(row: &mut [char; N]) {
+fn vanish_row(row: &mut Row) {
     let mut slide: usize = 0;
     for c in 0..N {
         while c + slide < N && row[c + slide] == '.' { slide += 1 };
@@ -141,6 +243,7 @@ impl fmt::Display for Table {
     }
 }
 
+#[allow(dead_code)]
 fn urand() -> [u32; 4] {
     use std::io::Read;
     let mut buf = [0; 16];
@@ -156,6 +259,7 @@ fn urand() -> [u32; 4] {
     rnd
 }
 
+#[allow(dead_code)]
 struct Rng {
     x: u32,
     y: u32,
@@ -190,16 +294,27 @@ impl Rng {
         self.w = (self.w ^ (self.w >> 19)) ^ (t ^ (t >> 8));
         return self.w
     }
+
+    fn next_f(&mut self) -> f32 {
+        self.next() as f32 / std::u32::MAX as f32
+    }
+
+    fn next_idx(&mut self, n: usize) -> usize {
+        (self.next() % n as u32) as usize
+    }
 }
 
+#[allow(dead_code)]
 fn p<T: std::fmt::Display>(v: T) {
     println!("{}", v)
 }
 
+#[allow(dead_code)]
 fn read_int() -> i32 {
     read_line().parse().unwrap()
 }
 
+#[allow(dead_code)]
 fn read_line() -> String {
     let mut line = String::new();
     io::stdin().read_line(&mut line).unwrap();
