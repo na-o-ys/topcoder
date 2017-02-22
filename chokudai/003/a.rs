@@ -7,37 +7,46 @@ use std::ops::{Index, IndexMut};
 const N: usize = 50;
 
 fn main() {
-    let mut rng = Rng::from_seed(urand());
-    let mut sa = Anealing::new(SystemTime::now(), 9500);
     let mut table = Table::read();
     let mut vanished_table = table.clone();
     vanished_table.vanish();
+
+    let mut rng = Rng::from_seed(urand());
+    let mut sa = Anealing::new(SystemTime::now(), 9500);
+
     let mut current_score: u32 = 0;
     while sa.remainig() > 0.0 {
         let r = rng.next_idx(N);
+
         let mut row = *table.get_row(r);
-        for c in 1..N {
-            if row[c] == 'o' || row[c] == 'x' { continue; }
-            let sym = ['.', '.', '.', '.', '.', '.', '.', '.', '.', '+'];
-            row[c] = sym[rng.next_idx(10)];
-        }
-        let mut v_row = row.clone();
-        vanish_row(&mut v_row);
-        let v_row_org = *vanished_table.get_row(r);
-        vanished_table.set_row(r, v_row);
+        randomize(&mut row, &mut rng);
+
+        let v_row_crr = *vanished_table.get_row(r);
+        let mut v_row_nxt = row.clone();
+        vanish_row(&mut v_row_nxt);
+        vanished_table.set_row(r, v_row_nxt);
         let next_score = vanished_table.score();
+
         // p(current_score);
         if sa.transition(current_score as i32, next_score as i32) {
             table.set_row(r, row);
             current_score = next_score;
         } else {
-            vanished_table.set_row(r, v_row_org);
+            vanished_table.set_row(r, v_row_crr);
         }
     }
     // table.show();
     p(vanished_table.score());
  
     // p(Table::rand())
+}
+
+fn randomize(row: &mut Row, rng: &mut Rng) {
+    for c in 1..N {
+        if row[c] == 'o' || row[c] == 'x' { continue; }
+        let sym = ['.', '.', '.', '.', '.', '.', '.', '.', '.', '+'];
+        row[c] = sym[rng.next_idx(10)];
+    }
 }
 
 #[allow(dead_code)]
@@ -51,9 +60,9 @@ struct Anealing {
 
 impl Anealing {
     fn new(start_time: SystemTime, limit_ms: u32) -> Anealing {
-        let mut rng = Rng::from_seed(urand());
-        const factor: f32 = 4.8;
-        let p1 = factor;
+        let rng = Rng::from_seed(urand());
+        const FACTOR: f32 = 4.8;
+        let p1 = FACTOR;
         let p2 = N as f32 / 2.0;
         Anealing { start_time: start_time, limit_ms: limit_ms as f32, p1: p1, p2: p2, rng: rng }
     }
@@ -76,7 +85,6 @@ impl Anealing {
 }
 
 #[derive(Copy)]
-#[allow(dead_code)]
 struct Row {
     row: [char; N]
 }
@@ -111,7 +119,6 @@ impl IndexMut<usize> for Row {
 }
 
 #[derive(Copy)]
-#[allow(dead_code)]
 struct Table {
     rows: [Row; N]
 }
@@ -143,6 +150,7 @@ impl Table {
     }
 
     // Debug
+    #[allow(dead_code)]
     fn rand() -> Table {
         let val = ['.', '.', 'o', 'x'];
         let mut rng = Rng::from_seed(urand());
@@ -187,10 +195,10 @@ impl Table {
     }
 
     fn score(&self) -> u32 {
-        const sym: [char; 2] = ['o', 'x'];
+        const SYM: [char; 2] = ['o', 'x'];
         fn score_rec(table: &Table, r: usize, c: usize, s: usize, visited: &mut [[[bool; N]; N]; 2]) -> u32 {
             if r >= N || c >= N ||
-                visited[s][r][c] || table.get(r, c) != sym[s] {
+                visited[s][r][c] || table.get(r, c) != SYM[s] {
                 return 0;
             }
             visited[s][r][c] = true;
@@ -259,7 +267,6 @@ fn urand() -> [u32; 4] {
     rnd
 }
 
-#[allow(dead_code)]
 struct Rng {
     x: u32,
     y: u32,
@@ -267,6 +274,7 @@ struct Rng {
     w: u32,
 }
 
+#[allow(dead_code)]
 impl Rng {
     fn new() -> Rng {
         return Rng {
